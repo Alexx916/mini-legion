@@ -1,0 +1,11 @@
+# Godot 4 editor cache/import artifacts
+.godot/
+*.translation
+
+# Mono/.NET build artifacts
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS cruft
+.DS_Store

@@ -1,0 +1,100 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/collection.gd" id="1"]
+
+[node name="Collection" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.14, 0.11, 0.1, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+text = "< Back"
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "COLLECTION"
+
+[node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SummaryLabel" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+text = "0 / 32 unit types discovered"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RaceColumns" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="IroncladColumn" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IroncladLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns/IroncladColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "IRONCLAD"
+
+[node name="SkarrgorColumn" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SkarrgorLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns/SkarrgorColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "SKARRGOR"
+
+[node name="WhisperwoodColumn" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WhisperwoodLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns/WhisperwoodColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "WHISPERWOOD"
+
+[node name="NeutralColumn" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NeutralLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/RaceColumns/NeutralColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "NEUTRAL"
