@@ -64,17 +64,19 @@ const MELEE_RANGE := 40.0
 const RANGED_RANGE := 220.0
 
 ## Each race gets 10 unit types: 4 common, 3 uncommon, 2 rare, 1 epic. Every
-## unit type has a special ability on a cooldown (see PASSIVES below);
-## Uncommon+ abilities are additionally themed to the race and may synergize
-## with a teammate's ability. Commons get simpler self-buffs or single-target
-## crowd control (slow/root/stun/fear) -- something every unit can use to
-## help pin down a kiting ranged enemy, not just the rarer units.
+## unit type gets a short-cooldown special ability (a heavy attack on
+## whatever it's fighting, or a self-heal for healer types) regardless of
+## rarity -- that's handled generically in battle_sim.gd, not per unit type.
+## The "passive" field here is a SEPARATE, longer-cooldown ability reserved
+## for Uncommon+: it affects the battle in an area (buffing allies,
+## weakening/CC-ing enemies, or healing allies) and may synergize with a
+## teammate's passive. Commons have no passive.
 const RACE_UNIT_TYPES := {
 	MiniPart.Race.IRONCLAD: [
-		{"name": "Recruit", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "common_focus", "ranged": false},
-		{"name": "Spearman", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "ironclad_pin_down", "ranged": false},
-		{"name": "Shieldbearer", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "common_brace", "ranged": false},
-		{"name": "Crossbowman", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "ironclad_crippling_shot", "ranged": true},
+		{"name": "Recruit", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "", "ranged": false},
+		{"name": "Spearman", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "", "ranged": false},
+		{"name": "Shieldbearer", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "", "ranged": false},
+		{"name": "Crossbowman", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "", "ranged": true},
 		{"name": "Sergeant", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "balanced", "passive": "ironclad_rally", "ranged": false},
 		{"name": "Halberdier", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "tank", "passive": "ironclad_brace", "ranged": false},
 		{"name": "Cavalry Rider", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "speedster", "passive": "ironclad_charge", "ranged": false},
@@ -83,10 +85,10 @@ const RACE_UNIT_TYPES := {
 		{"name": "Paladin Lord", "rarity": MiniPart.Rarity.EPIC, "archetype": "tank", "passive": "ironclad_aegis", "ranged": false},
 	],
 	MiniPart.Race.SKARRGOR: [
-		{"name": "Grunt", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "common_focus", "ranged": false},
-		{"name": "Slasher", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "common_frenzy", "ranged": false},
-		{"name": "Brute", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "common_brace", "ranged": false},
-		{"name": "Slinger", "rarity": MiniPart.Rarity.COMMON, "archetype": "speedster", "passive": "skarrgor_stone_stun", "ranged": true},
+		{"name": "Grunt", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "", "ranged": false},
+		{"name": "Slasher", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "", "ranged": false},
+		{"name": "Brute", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "", "ranged": false},
+		{"name": "Slinger", "rarity": MiniPart.Rarity.COMMON, "archetype": "speedster", "passive": "", "ranged": true},
 		{"name": "Berserker", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "glass_cannon", "passive": "skarrgor_bloodlust", "ranged": false},
 		{"name": "Warg Rider", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "speedster", "passive": "skarrgor_packhunt", "ranged": false},
 		{"name": "Bonecrusher", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "tank", "passive": "skarrgor_sunder", "ranged": false},
@@ -95,10 +97,10 @@ const RACE_UNIT_TYPES := {
 		{"name": "Warlord", "rarity": MiniPart.Rarity.EPIC, "archetype": "glass_cannon", "passive": "skarrgor_wrath", "ranged": false},
 	],
 	MiniPart.Race.WHISPERWOOD: [
-		{"name": "Scout", "rarity": MiniPart.Rarity.COMMON, "archetype": "speedster", "passive": "common_sprint", "ranged": false},
-		{"name": "Archer", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "whisperwood_crippling_shot", "ranged": true},
-		{"name": "Sapling Warden", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "whisperwood_entangling_roots", "ranged": false},
-		{"name": "Skirmisher", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "whisperwood_spook", "ranged": false},
+		{"name": "Scout", "rarity": MiniPart.Rarity.COMMON, "archetype": "speedster", "passive": "", "ranged": false},
+		{"name": "Archer", "rarity": MiniPart.Rarity.COMMON, "archetype": "glass_cannon", "passive": "", "ranged": true},
+		{"name": "Sapling Warden", "rarity": MiniPart.Rarity.COMMON, "archetype": "tank", "passive": "", "ranged": false},
+		{"name": "Skirmisher", "rarity": MiniPart.Rarity.COMMON, "archetype": "balanced", "passive": "", "ranged": false},
 		{"name": "Ranger", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "glass_cannon", "passive": "whisperwood_deadeye", "ranged": true},
 		{"name": "Druid", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "support", "passive": "whisperwood_regrowth", "ranged": true},
 		{"name": "Blade Dancer", "rarity": MiniPart.Rarity.UNCOMMON, "archetype": "speedster", "passive": "whisperwood_fleetfoot", "ranged": false},
@@ -114,46 +116,35 @@ const LEGENDARY_FIGURE_DEFS := [
 ]
 
 ## Passive metadata for display (Collection screen, Inventory preview, etc).
-## These are periodic, on-cooldown abilities that pulse an effect to nearby
-## units when they trigger -- not always-on, battlefield-wide buffs. The
-## actual battle effects/cooldowns are implemented in battle_sim.gd, keyed
-## by these same ids.
+## Uncommon+ only -- Commons have no passive, just the special ability every
+## unit gets (see MiniUnit/battle_sim for that). These are periodic,
+## on-cooldown abilities that pulse an effect over an area when they
+## trigger, longer-cooldown and more impactful than the special ability:
+## buffing allies, weakening/crowd-controlling enemies, or healing allies.
+## Some ids trigger more than one effect (e.g. Hex both weakens and slows).
+## The actual battle effects/cooldowns are implemented in battle_sim.gd,
+## keyed by these same ids.
 const PASSIVES := {
 	"ironclad_rally": {"name": "Rally", "description": "Periodically grants +Armor to nearby allies for a few seconds."},
 	"ironclad_brace": {"name": "Brace", "description": "Periodically grants +Resistance to nearby allies for a few seconds."},
 	"ironclad_charge": {"name": "Charge", "description": "Periodically grants +Speed to nearby allies for a few seconds."},
 	"ironclad_bulwark": {"name": "Bulwark", "description": "Periodically grants +Armor and +Resistance to nearby allies for a few seconds."},
 	"ironclad_blessing": {"name": "Blessing", "description": "Healer: periodically heals nearby allies. Generates heavy threat while healing."},
-	"ironclad_aegis": {"name": "Aegis", "description": "Periodically grants +Armor and +Resistance to nearby allies for a few seconds."},
+	"ironclad_aegis": {"name": "Aegis", "description": "Periodically grants +Armor and +Resistance to nearby allies, and roots nearby enemies in place, for a few seconds."},
 	"skarrgor_bloodlust": {"name": "Bloodlust", "description": "Periodically grants +Might to nearby allies for a few seconds."},
 	"skarrgor_packhunt": {"name": "Pack Hunt", "description": "Periodically grants +Speed to nearby allies for a few seconds."},
 	"skarrgor_sunder": {"name": "Sunder", "description": "Periodically grants nearby allies armor-piercing attacks for a few seconds."},
 	"skarrgor_warcry": {"name": "War Cry", "description": "Periodically grants +Might and +Speed to nearby allies for a few seconds."},
-	"skarrgor_hex": {"name": "Hex", "description": "Periodically weakens nearby enemies' Armor and Resistance for a few seconds."},
-	"skarrgor_wrath": {"name": "Warlord's Wrath", "description": "Periodically grants a large +Might boost to nearby allies for a few seconds."},
+	"skarrgor_hex": {"name": "Hex", "description": "Periodically weakens nearby enemies' Armor and Resistance and slows their movement for a few seconds."},
+	"skarrgor_wrath": {"name": "Warlord's Wrath", "description": "Periodically grants a large +Might boost to nearby allies and briefly stuns nearby enemies."},
 	"whisperwood_deadeye": {"name": "Deadeye", "description": "Periodically grants +Might to nearby allies for a few seconds."},
 	"whisperwood_regrowth": {"name": "Regrowth", "description": "Healer: periodically heals nearby allies. Generates heavy threat while healing."},
 	"whisperwood_fleetfoot": {"name": "Fleetfoot", "description": "Periodically grants +Dodge Chance to nearby allies for a few seconds."},
 	"whisperwood_weave": {"name": "Arcane Weave", "description": "Periodically grants +Prowess to nearby allies for a few seconds."},
-	"whisperwood_moonlit": {"name": "Moonlit Strike", "description": "Periodically grants nearby allies resistance-piercing attacks for a few seconds."},
+	"whisperwood_moonlit": {"name": "Moonlit Strike", "description": "Periodically grants nearby allies resistance-piercing attacks, and frightens nearby enemies into fleeing, for a few seconds."},
 	"whisperwood_worldtree": {"name": "World Tree's Blessing", "description": "Healer: periodically heals nearby allies for a large amount. Generates heavy threat while healing."},
 	"legend_immovable": {"name": "Immovable", "description": "+30% Armor and +30% Resistance (self only, always active)."},
 	"legend_rebirth": {"name": "Rebirth", "description": "Revives once per battle at 50% Health when defeated."},
-
-	## Common-tier special abilities: simpler self-only buffs or single-target
-	## crowd control, so ranged units aren't the only ones with a tool to
-	## affect the fight -- melee commons can slow, root, stun, or fear a
-	## kiting target to close the gap.
-	"common_focus": {"name": "Focus", "description": "Periodically boosts this unit's own Might and Prowess for a few seconds."},
-	"common_brace": {"name": "Brace Up", "description": "Periodically boosts this unit's own Armor and Resistance for a few seconds."},
-	"common_frenzy": {"name": "Frenzy", "description": "Periodically boosts this unit's own Might and Speed for a few seconds."},
-	"common_sprint": {"name": "Sprint", "description": "Periodically boosts this unit's own Speed and Dodge Chance for a few seconds."},
-	"ironclad_pin_down": {"name": "Pin Down", "description": "Periodically roots the nearest enemy in place, preventing it from moving."},
-	"ironclad_crippling_shot": {"name": "Crippling Shot", "description": "Periodically slows the nearest enemy's movement for a few seconds."},
-	"skarrgor_stone_stun": {"name": "Stone Throw", "description": "Periodically stuns the nearest enemy, briefly preventing it from acting."},
-	"whisperwood_crippling_shot": {"name": "Crippling Shot", "description": "Periodically slows the nearest enemy's movement for a few seconds."},
-	"whisperwood_entangling_roots": {"name": "Entangling Roots", "description": "Periodically roots the nearest enemy in place, preventing it from moving."},
-	"whisperwood_spook": {"name": "Spook", "description": "Periodically frightens the nearest enemy, forcing it to flee and stop attacking."},
 }
 
 ## Pack lines: one Neutral line (any race, and the only source of Legendary

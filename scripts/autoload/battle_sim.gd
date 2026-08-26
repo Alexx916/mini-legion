@@ -40,8 +40,19 @@ class UnitState:
 	var attack_interval: float
 	var attack_cooldown: float = 0.0
 
-	var ability_cooldown_max: float = 0.0 ## 0 means "no pulsed ability"
+	## Passive: Uncommon+ only. A themed, longer-cooldown pulse that buffs
+	## allies, debuffs/CCs enemies in an area, or heals allies -- see the
+	## *_ABILITIES tables below.
+	var ability_cooldown_max: float = 0.0 ## 0 means "no passive"
 	var ability_cooldown: float = 0.0
+
+	## Special ability: every unit has one. A short-cooldown heavy attack on
+	## whatever the unit is currently fighting, or a self-heal for healer
+	## unit types. This is what makes the regular-attack-vs-special-ability
+	## distinction real, independent of rarity/passives.
+	var special_type: String = "heavy_attack" ## or "self_heal"
+	var special_cooldown_max: float = 0.0
+	var special_cooldown: float = 0.0
 
 	var threat: float = 1.0
 	var target: UnitState
@@ -88,26 +99,27 @@ const THREAT_PER_HEALING := 1.2
 const ABILITY_RANGE := 160.0
 const ABILITY_BUFF_DURATION := 4.0
 
-## "Larger cooldown for stronger abilities": pulsed-ability cooldown by the
-## unit's rarity, used unless overridden per-ability below. Legendary
-## passives are handled separately (self-only or death-triggered, not pulsed).
+## "Larger cooldown for stronger abilities": passive pulse cooldown by the
+## unit's rarity. Passives are Uncommon+ only -- Commons have no entry here.
+## Legendary passives are handled separately (self-only or death-triggered).
 const ABILITY_COOLDOWN_BY_RARITY := {
-	MiniPart.Rarity.COMMON: 6.0,
 	MiniPart.Rarity.UNCOMMON: 8.0,
 	MiniPart.Rarity.RARE: 12.0,
 	MiniPart.Rarity.EPIC: 16.0,
 }
 
-## Crowd control is stronger than a same-rarity stat buff, so specific CC
-## abilities get a longer cooldown than the rarity default would give them.
-const ABILITY_COOLDOWN_OVERRIDE := {
-	"ironclad_pin_down": 10.0,
-	"ironclad_crippling_shot": 9.0,
-	"skarrgor_stone_stun": 11.0,
-	"whisperwood_crippling_shot": 9.0,
-	"whisperwood_entangling_roots": 10.0,
-	"whisperwood_spook": 10.0,
+## Special abilities fire every few seconds regardless of rarity, so they
+## stay a constant presence in the fight rather than a rare event.
+const SPECIAL_COOLDOWN_BY_RARITY := {
+	MiniPart.Rarity.COMMON: 3.0,
+	MiniPart.Rarity.UNCOMMON: 3.5,
+	MiniPart.Rarity.RARE: 4.5,
+	MiniPart.Rarity.EPIC: 5.5,
+	MiniPart.Rarity.LEGENDARY: 4.0,
 }
+
+const HEAVY_ATTACK_MULT := 2.0 ## special-ability damage vs a regular hit
+const SELF_HEAL_PCT := 0.2 ## fraction of max health restored by a self-heal special
 
 ## Stat-buff pulses: passive id -> list of {"stat", "mode", "value"} applied
 ## to the caster and allies within ABILITY_RANGE for ABILITY_BUFF_DURATION.
@@ -133,6 +145,20 @@ const DEBUFF_ABILITIES := {
 	"skarrgor_hex": [{"stat": "armor", "mode": "mult", "value": 0.8}, {"stat": "resistance", "mode": "mult", "value": 0.8}],
 }
 
+## AoE crowd control: passive id -> {"type", "duration", "magnitude" (slow
+## only)}, applied to every enemy within ABILITY_RANGE (not just the nearest
+## one) when the ability fires. This is deliberately reserved for a handful
+## of strong Rare/Epic passives -- "using AoE CC... falls into this
+## 'stronger' category" of passive, per game design. A passive id can appear
+## here alongside BUFF_ABILITIES/DEBUFF_ABILITIES to layer a CC effect on
+## top of its existing stat effect.
+const AOE_CC_ABILITIES := {
+	"skarrgor_hex": {"type": "slow", "duration": 3.0, "magnitude": 0.4},
+	"skarrgor_wrath": {"type": "stun", "duration": 1.2},
+	"ironclad_aegis": {"type": "root", "duration": 2.5},
+	"whisperwood_moonlit": {"type": "fear", "duration": 2.0},
+}
+
 ## Healers: passive id -> fraction of max health restored to each ally
 ## within range when the ability fires. Generates big threat (see
 ## THREAT_PER_HEALING) so healing draws aggro, per game design.
@@ -140,29 +166,6 @@ const HEAL_ABILITIES := {
 	"ironclad_blessing": 0.18,
 	"whisperwood_regrowth": 0.15,
 	"whisperwood_worldtree": 0.25,
-}
-
-## Common-tier self-only buffs: passive id -> list of {"stat","mode","value"}
-## applied to the caster alone (weaker/simpler than the squad-wide auras
-## uncommon+ units grant).
-const SELF_BUFF_ABILITIES := {
-	"common_focus": [{"stat": "might", "mode": "mult", "value": 1.2}, {"stat": "prowess", "mode": "mult", "value": 1.2}],
-	"common_brace": [{"stat": "armor", "mode": "mult", "value": 1.25}, {"stat": "resistance", "mode": "mult", "value": 1.25}],
-	"common_frenzy": [{"stat": "might", "mode": "mult", "value": 1.2}, {"stat": "speed", "mode": "mult", "value": 1.2}],
-	"common_sprint": [{"stat": "speed", "mode": "mult", "value": 1.25}, {"stat": "dodge_chance", "mode": "mult", "value": 1.3}],
-}
-
-## Single-target crowd control abilities: passive id -> {"type", "duration",
-## "magnitude" (slow only)}. Applied to the nearest living enemy in range,
-## per game design ("if there was the ability to slow, stun, root or fear
-## them it would be easier to catch [ranged units]").
-const CC_ABILITIES := {
-	"ironclad_pin_down": {"type": "root", "duration": 2.5},
-	"ironclad_crippling_shot": {"type": "slow", "duration": 3.0, "magnitude": 0.5},
-	"skarrgor_stone_stun": {"type": "stun", "duration": 1.5},
-	"whisperwood_crippling_shot": {"type": "slow", "duration": 3.0, "magnitude": 0.5},
-	"whisperwood_entangling_roots": {"type": "root", "duration": 3.0},
-	"whisperwood_spook": {"type": "fear", "duration": 2.0},
 }
 
 func _make_states(units: Array[MiniUnit], team: int, side_x: float) -> Array:
@@ -194,9 +197,16 @@ func _make_states(units: Array[MiniUnit], team: int, side_x: float) -> Array:
 			"legend_rebirth":
 				s.can_revive = true
 			_:
-				if u.get_rarity() != MiniPart.Rarity.LEGENDARY and s.passive_id != "":
-					s.ability_cooldown_max = ABILITY_COOLDOWN_OVERRIDE.get(s.passive_id, ABILITY_COOLDOWN_BY_RARITY.get(u.get_rarity(), 0.0))
+				if u.get_rarity() != MiniPart.Rarity.LEGENDARY and s.passive_id != "" and ABILITY_COOLDOWN_BY_RARITY.has(u.get_rarity()):
+					s.ability_cooldown_max = ABILITY_COOLDOWN_BY_RARITY[u.get_rarity()]
 					s.ability_cooldown = s.ability_cooldown_max
+
+		## Every unit gets a short-cooldown special ability: a heavy attack on
+		## whatever it's fighting, or a self-heal if it's a healer type
+		## (identified by its passive being one of the ally-heal passives).
+		s.special_type = "self_heal" if HEAL_ABILITIES.has(s.passive_id) else "heavy_attack"
+		s.special_cooldown_max = SPECIAL_COOLDOWN_BY_RARITY.get(u.get_rarity(), 3.0)
+		s.special_cooldown = s.special_cooldown_max
 
 		var y := (ARENA_SIZE.y / float(count + 1)) * (i + 1)
 		s.position = Vector2(side_x, y)
@@ -256,7 +266,13 @@ func simulate(player_units: Array[MiniUnit], enemy_units: Array[MiniUnit]) -> Di
 				var away: Vector2 = s.position - s.target.position
 				if away.length() > 0.0:
 					s.position = _clamp_to_arena(s.position + away.normalized() * s.speed * dt)
-				continue ## fleeing: no attack while feared
+				continue ## fleeing: no special ability, no attack while feared
+
+			s.special_cooldown -= dt
+			if s.special_cooldown <= 0.0:
+				var special_dmg := _cast_special_ability(s)
+				events.append({"time": t, "attacker": all_states.find(s), "target": all_states.find(s.target), "damage": special_dmg, "special": true})
+				s.special_cooldown = s.special_cooldown_max
 
 			var to_target: Vector2 = s.target.position - s.position
 			var dist: float = to_target.length()
@@ -287,8 +303,8 @@ func simulate(player_units: Array[MiniUnit], enemy_units: Array[MiniUnit]) -> Di
 				"pos": s_i.position,
 				"hp": max(0.0, s_i.health),
 				"max_hp": s_i.max_health,
-				"ability_cooldown": s_i.ability_cooldown,
-				"ability_cooldown_max": s_i.ability_cooldown_max,
+				"ability_cooldown": s_i.special_cooldown,
+				"ability_cooldown_max": s_i.special_cooldown_max,
 			}
 		log_frames.append({"time": t, "units": frame_positions})
 
@@ -388,9 +404,11 @@ func _nearest_enemy_in_range(caster: UnitState, all_states: Array, range_limit: 
 			nearest = s
 	return nearest
 
-## Fires the caster's pulsed special ability: a timed stat buff to nearby
-## allies, a timed debuff to nearby enemies, or an instant heal (which
-## generates a burst of threat on the healer, per game design).
+## Fires the caster's PASSIVE (Uncommon+ only): a timed stat buff to nearby
+## allies, a timed debuff and/or AoE crowd control to nearby enemies, or an
+## instant heal (which generates a burst of threat on the healer). A passive
+## id can trigger more than one of these tables at once (e.g. Hex both
+## weakens and slows nearby enemies).
 func _cast_ability(caster: UnitState, all_states: Array, t: float) -> void:
 	var pid := caster.passive_id
 	if BUFF_ABILITIES.has(pid):
@@ -398,12 +416,12 @@ func _cast_ability(caster: UnitState, all_states: Array, t: float) -> void:
 		for ally in _allies_in_range(caster, all_states, ABILITY_RANGE):
 			for effect in effects:
 				ally.active_effects.append({"stat": effect["stat"], "mode": effect["mode"], "value": effect["value"], "expires_at": t + ABILITY_BUFF_DURATION})
-	elif DEBUFF_ABILITIES.has(pid):
+	if DEBUFF_ABILITIES.has(pid):
 		var effects: Array = DEBUFF_ABILITIES[pid]
 		for enemy in _enemies_in_range(caster, all_states, ABILITY_RANGE):
 			for effect in effects:
 				enemy.active_effects.append({"stat": effect["stat"], "mode": effect["mode"], "value": effect["value"], "expires_at": t + ABILITY_BUFF_DURATION})
-	elif HEAL_ABILITIES.has(pid):
+	if HEAL_ABILITIES.has(pid):
 		var heal_pct: float = HEAL_ABILITIES[pid]
 		var total_healing := 0.0
 		for ally_variant in _allies_in_range(caster, all_states, ABILITY_RANGE):
@@ -412,19 +430,33 @@ func _cast_ability(caster: UnitState, all_states: Array, t: float) -> void:
 			ally.health = min(ally.max_health, ally.health + ally.max_health * heal_pct)
 			total_healing += ally.health - before
 		caster.threat += total_healing * THREAT_PER_HEALING
-	elif SELF_BUFF_ABILITIES.has(pid):
-		var effects: Array = SELF_BUFF_ABILITIES[pid]
-		for effect in effects:
-			caster.active_effects.append({"stat": effect["stat"], "mode": effect["mode"], "value": effect["value"], "expires_at": t + ABILITY_BUFF_DURATION})
-	elif CC_ABILITIES.has(pid):
-		var cc: Dictionary = CC_ABILITIES[pid]
-		var target := _nearest_enemy_in_range(caster, all_states, ABILITY_RANGE)
-		if target != null:
-			target.active_cc = {
+	if AOE_CC_ABILITIES.has(pid):
+		var cc: Dictionary = AOE_CC_ABILITIES[pid]
+		for enemy_variant in _enemies_in_range(caster, all_states, ABILITY_RANGE):
+			var enemy: UnitState = enemy_variant
+			enemy.active_cc = {
 				"type": cc["type"],
 				"expires_at": t + cc["duration"],
 				"magnitude": cc.get("magnitude", 0.0),
 			}
+
+## Fires the caster's SPECIAL ability (every unit has one, on a short
+## cooldown): a heavy attack on whatever it's currently fighting, or a
+## self-heal for healer unit types. Returns the damage dealt, if any (for
+## the visual event log).
+func _cast_special_ability(caster: UnitState) -> float:
+	if caster.special_type == "self_heal":
+		var before: float = caster.health
+		caster.health = min(caster.max_health, caster.health + caster.max_health * SELF_HEAL_PCT)
+		caster.threat += (caster.health - before) * THREAT_PER_HEALING
+		return 0.0
+
+	if caster.target == null or not caster.target.is_alive():
+		return 0.0
+	var dmg := _resolve_attack(caster, caster.target, HEAVY_ATTACK_MULT)
+	if dmg > 0.0:
+		caster.threat += dmg * THREAT_PER_DAMAGE
+	return dmg
 
 ## Picks the highest-threat living enemy, with proximity as a tie-breaker,
 ## instead of simply the nearest enemy -- so healers actively healing (and
@@ -445,7 +477,9 @@ func _find_target(s: UnitState, all_states: Array) -> UnitState:
 ## Rolls damage for one attack (physical uses Might vs Armor, magical uses
 ## Prowess vs Resistance), applies it, and handles a one-time revive if the
 ## target has the Rebirth passive. Returns the damage dealt (0 on a dodge).
-func _resolve_attack(attacker: UnitState, target: UnitState) -> float:
+## `multiplier` scales the raw stat before rolling -- used by the special
+## ability's heavy attack (see HEAVY_ATTACK_MULT).
+func _resolve_attack(attacker: UnitState, target: UnitState, multiplier: float = 1.0) -> float:
 	var dodge_roll: float = randf() * 100.0
 	if dodge_roll < min(target.dodge_chance, MAX_DODGE_CHANCE):
 		return 0.0
@@ -458,6 +492,7 @@ func _resolve_attack(attacker: UnitState, target: UnitState) -> float:
 	else:
 		raw_stat = attacker.might
 		mitigation = target.armor * (1.0 - attacker.armor_pen)
+	raw_stat *= multiplier
 
 	var rolled: float = randf_range(raw_stat * (1.0 - DAMAGE_VARIANCE), raw_stat * (1.0 + DAMAGE_VARIANCE))
 	var dmg: float = max(1.0, rolled - mitigation * 0.5)

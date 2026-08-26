@@ -9,3 +9,7 @@ mono_crash.*.json
 
 # OS cruft
 .DS_Store
+
+# Local export scratch output -- the deployed copy lives in docs/ instead
+build/
+

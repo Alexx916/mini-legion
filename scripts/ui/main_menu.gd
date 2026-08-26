@@ -23,13 +23,12 @@ func _ready() -> void:
 func _update_currency() -> void:
 	currency_label.text = "Gold: %d" % GameState.currency
 
-## Skips straight to picking a battle if a one-time override or a default
-## army is set, so the player doesn't have to rebuild a squad every time;
-## falls back to the Army Builder if neither is available.
+## A default army must exist before a battle can be picked. If one isn't
+## set yet, send the player straight into building one (Army Builder) --
+## once they set it as default there, they're routed right back into the
+## battle flow -- rather than just refusing and bouncing to the main menu.
 func _on_battle_pressed() -> void:
-	var units := GameState.consume_battle_army()
-	if units.is_empty():
+	if GameState.get_default_army().is_empty() and GameState.next_battle_override.is_empty():
 		get_tree().change_scene_to_file("res://scenes/battle/army_builder.tscn")
 	else:
-		BattleSim.pending_player_units = units
 		get_tree().change_scene_to_file("res://scenes/battle/encounter_select.tscn")

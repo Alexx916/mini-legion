@@ -149,11 +149,10 @@ func _on_save_army() -> void:
 	GameState.save_army(army_name_edit.text.strip_edges(), units)
 	army_name_edit.text = ""
 
+## This screen only appears when there's no default army yet (see Main
+## Menu's Battle button), so continuing always sets the built army as the
+## default -- "must be done before a battle can be selected" -- then heads
+## straight into picking a battle.
 func _on_continue() -> void:
-	var units: Array[MiniUnit] = []
-	for id in selected_ids:
-		var u := _find_unit(id)
-		if u:
-			units.append(u)
-	BattleSim.pending_player_units = units
+	GameState.set_default_army(army_size, _locked_race() if _locked_race() != -1 else MiniPart.Race.NONE, selected_ids.duplicate())
 	get_tree().change_scene_to_file("res://scenes/battle/encounter_select.tscn")

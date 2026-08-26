@@ -32,20 +32,40 @@ func _start_round() -> void:
 	for i in range(min(3, candidates.size())):
 		card_row.add_child(_build_card(candidates[i]))
 
-func _build_card(unit_type: Dictionary) -> PanelContainer:
+## The whole card is a Button so clicking anywhere on it picks that unit.
+func _build_card(unit_type: Dictionary) -> Button:
 	var unit := GachaSystem.build_unit_from_type(GameState.draft_race, unit_type["name"])
 
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(240, 300)
+	var card := Button.new()
+	card.custom_minimum_size = Vector2(220, 190)
+	card.pressed.connect(func(): _on_pick(unit))
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.14, 0.14, 0.17)
+	style.border_color = MiniPart.rarity_color(unit_type["rarity"])
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(8)
+	card.add_theme_stylebox_override("normal", style)
+	var hover_style := style.duplicate()
+	hover_style.bg_color = Color(0.19, 0.19, 0.23)
+	card.add_theme_stylebox_override("hover", hover_style)
+	card.add_theme_stylebox_override("pressed", hover_style)
+	card.add_theme_stylebox_override("focus", style)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 4)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.offset_left = 8
+	vbox.offset_top = 8
+	vbox.offset_right = -8
+	vbox.offset_bottom = -8
+	card.add_child(vbox)
 
 	var name_label := Label.new()
 	name_label.text = unit_type["name"]
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 20)
+	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.add_theme_color_override("font_color", MiniPart.rarity_color(unit_type["rarity"]))
 	vbox.add_child(name_label)
 
@@ -57,27 +77,18 @@ func _build_card(unit_type: Dictionary) -> PanelContainer:
 		unit.get_max_health(), unit.get_speed(), unit.get_dodge_chance(), dmg, range_text
 	]
 	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.add_theme_font_size_override("font_size", 13)
+	stats_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(stats_label)
 
 	if unit.get_passive_name() != "":
 		var passive_label := Label.new()
-		passive_label.text = "★ %s\n%s" % [unit.get_passive_name(), unit.get_passive_description()]
-		passive_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		passive_label.text = "★ %s" % unit.get_passive_name()
 		passive_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		passive_label.add_theme_font_size_override("font_size", 11)
 		passive_label.modulate = Color(0.8, 0.9, 1.0)
 		vbox.add_child(passive_label)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = SIZE_EXPAND_FILL
-	vbox.add_child(spacer)
-
-	var pick_button := Button.new()
-	pick_button.text = "Pick"
-	pick_button.pressed.connect(func(): _on_pick(unit))
-	vbox.add_child(pick_button)
-
-	return panel
+	return card
 
 func _on_pick(unit: MiniUnit) -> void:
 	drafted_units.append(unit)
